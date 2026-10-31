@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Timekeeper session</title>
+  <meta name="color-scheme" content="dark" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Archivo+Narrow:wght@600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="mode-control">
+  <!-- ============ Control mode ============ -->
+  <div class="view-control">
+    <header class="tka-header">
+      <a class="tka-brand" href="/">
+        <img src="/assets/icon.svg" alt="" width="32" height="32" />
+        <span class="tka-brand-name" data-t="appName">Timekeeper</span>
+      </a>
+      <div class="tka-share">
+        <span class="tka-muted" data-t="sessionLink">Session link:</span>
+        <code class="tka-link" id="session-link"></code>
+        <button class="tka-btn tka-btn-small" id="copy-link" type="button" data-t="copyLink">Copy link</button>
+      </div>
+      <button class="tka-btn tka-btn-primary" id="enter-present" type="button" data-t="presentMode">Presentation mode</button>
+      <span class="tka-conn" id="conn"></span>
+    </header>
+
+    <p class="tka-hint"><span data-t="presentHint"></span> <span id="expires-note"></span></p>
+
+    <div class="tka-alert" id="setup-alert" hidden data-t="storageMissing"></div>
+    <div class="tka-toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <main class="tka-grid">
+      <section class="tka-card tka-now" aria-labelledby="now-heading">
+        <p class="tka-label" id="now-heading" data-t="now">Now</p>
+        <h2 class="tka-now-title" id="now-title">—</h2>
+        <p class="tka-muted" id="now-next"></p>
+        <div class="tka-clock" id="now-clock">--:--</div>
+        <p class="tka-muted" id="now-status"></p>
+
+        <div class="tka-controls">
+          <button class="tka-btn" type="button" data-action="prev" data-t="prev"></button>
+          <button class="tka-btn tka-btn-primary tka-btn-big" type="button" id="play-toggle"></button>
+          <button class="tka-btn" type="button" data-action="next" data-t="next"></button>
+        </div>
+        <div class="tka-controls">
+          <button class="tka-btn" type="button" data-adjust="-60" data-t="minusOne"></button>
+          <button class="tka-btn" type="button" data-adjust="60" data-t="plusOne"></button>
+          <button class="tka-btn" type="button" data-action="resetStep" data-t="restartStep"></button>
+        </div>
+      </section>
+
+      <section class="tka-card tka-preview" aria-labelledby="preview-heading">
+        <div class="tka-card-head">
+          <h3 id="preview-heading" data-t="stagePreview">Stage preview</h3>
+        </div>
+        <div class="tka-preview-box" id="preview-box">
+          <iframe id="preview" title="Stage preview" tabindex="-1"></iframe>
+        </div>
+      </section>
+
+      <section class="tka-card tka-notify" aria-labelledby="notify-heading">
+        <h3 id="notify-heading" data-t="messageSpeaker">Message the speaker</h3>
+        <div class="tka-presets">
+          <button class="tka-chip" type="button" data-preset="preset5" data-t="preset5"></button>
+          <button class="tka-chip" type="button" data-preset="preset2" data-t="preset2"></button>
+          <button class="tka-chip" type="button" data-preset="presetWrap" data-t="presetWrap"></button>
+          <button class="tka-chip" type="button" data-preset="presetQa" data-t="presetQa"></button>
+          <button class="tka-chip" type="button" data-preset="presetMic" data-t="presetMic"></button>
+        </div>
+        <form class="tka-notify-form" id="notify-form">
+          <input class="tka-input" id="notify-input" type="text" maxlength="140" autocomplete="off" data-t-placeholder="messagePlaceholder" />
+          <button class="tka-btn tka-btn-primary" type="submit" data-t="send">Send</button>
+        </form>
+        <div class="tka-active-message" id="active-message" hidden>
+          <span class="tka-muted" data-t="onScreen">On screen:</span>
+          <strong id="active-message-text"></strong>
+          <span class="tka-muted" id="active-message-left"></span>
+          <button class="tka-btn tka-btn-small" id="clear-message" type="button" data-t="removeMessage">Remove</button>
+        </div>
+      </section>
+
+      <section class="tka-card tka-steps" aria-labelledby="steps-heading">
+        <div class="tka-card-head">
+          <h3 id="steps-heading" data-t="agenda">Agenda</h3>
+          <span class="tka-dirty" id="steps-dirty" hidden data-t="unsaved"></span>
+        </div>
+        <ol class="tka-step-list" id="steps-list"></ol>
+        <p class="tka-muted tka-empty" id="steps-empty" hidden data-t="emptyAgenda"></p>
+        <div class="tka-steps-actions">
+          <button class="tka-btn" type="button" id="add-step" data-t="addStep"></button>
+          <span class="tka-spacer"></span>
+          <button class="tka-btn" type="button" id="discard-steps" disabled data-t="discard"></button>
+          <button class="tka-btn tka-btn-primary" type="button" id="save-steps" disabled data-t="saveAgenda"></button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ Presentation mode ============ -->
+  <div class="view-present">
+    <div class="tk-bg" aria-hidden="true">
+      <div class="tk-blob"></div>
+      <div class="tk-blob"></div>
+      <div class="tk-blob"></div>
+      <div class="tk-blob"></div>
+    </div>
+    <div class="tk-red-wash" aria-hidden="true"></div>
+
+    <main class="tk-stage" id="stage">
+      <div class="tk-flow">
+        <span class="tk-current" id="stage-current">…</span>
+        <span class="tk-arrow" id="stage-arrow" aria-hidden="true" hidden>›</span>
+        <span class="tk-upnext" id="stage-next" hidden></span>
+      </div>
+      <div class="tk-clock" id="stage-clock" role="timer" aria-live="off">--:--</div>
+      <p class="tk-status" id="stage-status"></p>
+      <div class="tk-expired-banner" id="stage-expired" hidden data-t="timesUp"></div>
+      <div class="tk-message" id="stage-message" role="alert" hidden>
+        <span class="tk-message-label" data-t="messageLabel"></span>
+        <span class="tk-message-text" id="stage-message-text"></span>
+      </div>
+    </main>
+
+    <button class="tk-exit" id="exit-present" type="button" aria-describedby="exit-label">
+      <span class="tk-exit-ring" aria-hidden="true"></span>
+      <span class="tk-exit-label" id="exit-label" data-t="holdToExit">Hold to exit</span>
+    </button>
+    <button class="tk-wake-hint" id="wake-hint" type="button" hidden data-t="keepAwake"></button>
+    <footer class="tk-foot">
+      <span id="wake-status"></span>
+      <span id="stage-conn"></span>
+    </footer>
+  </div>
+
+  <!-- ============ Session missing / expired ============ -->
+  <main class="view-missing landing">
+    <h1 class="landing-title" data-t="notFoundTitle">Session not found</h1>
+    <p class="landing-tagline" id="missing-body"></p>
+    <a class="tka-btn tka-btn-primary landing-cta" href="/" data-t="newSession">Create a new session</a>
+  </main>
+
+  <script src="/assets/strings.js"></script>
+  <script src="/assets/core.js"></script>
+  <script src="/assets/session.js"></script>
+</body>
+</html>

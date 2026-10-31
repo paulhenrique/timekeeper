@@ -1,0 +1,10 @@
+{
+  "cleanUrls": true,
+  "rewrites": [{ "source": "/s/:id", "destination": "/session" }],
+  "headers": [
+    {
+      "source": "/s/:id",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+    }
+  ]
+}

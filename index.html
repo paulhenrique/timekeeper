@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Timekeeper — shared stage timer</title>
+  <meta name="description" content="A shared stage timer. One link: control it from your phone, show it full screen on stage." />
+  <meta name="color-scheme" content="dark" />
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Archivo+Narrow:wght@600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="landing-body">
+  <div class="tk-bg" aria-hidden="true">
+    <div class="tk-blob"></div>
+    <div class="tk-blob"></div>
+    <div class="tk-blob"></div>
+    <div class="tk-blob"></div>
+  </div>
+
+  <main class="landing">
+    <h1 class="landing-title" data-t="appName">Timekeeper</h1>
+    <p class="landing-tagline" data-t="tagline"></p>
+
+    <div class="landing-demo" aria-hidden="true">
+      <span class="landing-demo-step">Opening <span class="landing-demo-next">› Keynote</span></span>
+      <span class="landing-demo-clock">09:58</span>
+    </div>
+
+    <button class="tka-btn tka-btn-primary landing-cta" id="create" type="button" data-t="createSession">Create a session</button>
+    <p class="landing-error" id="create-error" role="alert" hidden></p>
+
+    <ol class="landing-how">
+      <li data-t="how1"></li>
+      <li data-t="how2"></li>
+      <li data-t="how3"></li>
+    </ol>
+    <p class="tka-muted landing-note" id="volatile-note"></p>
+  </main>
+
+  <footer class="landing-foot">
+    <a href="https://github.com/paulhenrique/timekeeper" data-t="footerSource">Open source (MIT) on GitHub</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://devitape.com.br" data-t="footerCredit">Made by the DevItape community</a>
+  </footer>
+
+  <script src="/assets/strings.js"></script>
+  <script src="/assets/landing.js"></script>
+</body>
+</html>
