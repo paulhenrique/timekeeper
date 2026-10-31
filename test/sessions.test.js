@@ -109,7 +109,7 @@ test('sessions are isolated from each other', async () => {
 
 test('unknown, malformed or expired sessions answer 404', async () => {
   clearEnv();
-  process.env.SESSION_TTL_HOURS = '0.0001'; // ~0.36s
+  process.env.SESSION_TTL_HOURS = '0.0001'; // rounds up to the 1s minimum
   const api = load();
   const id = await newSession(api);
 
@@ -120,7 +120,7 @@ test('unknown, malformed or expired sessions answer 404', async () => {
     404
   );
 
-  await new Promise((r) => setTimeout(r, 450));
+  await new Promise((r) => setTimeout(r, 1200));
   const res = await call(api.session, { method: 'GET', query: { id } });
   assert.equal(res.statusCode, 404);
   assert.equal(res.body.status, 'not_found');
@@ -188,7 +188,8 @@ test('with Redis configured, talks to the Upstash REST API', async () => {
     commands.push({ url, auth: init.headers.Authorization, command });
     const [op, key, value] = command;
     let result = null;
-    if (op === 'INCR') {
+    if (op === 'GETEX') result = db.get(key) ?? null;
+    else if (op === 'INCR') {
       result = (Number(db.get(key)) || 0) + 1;
       db.set(key, String(result));
     } else if (op === 'EXPIRE') result = 1;
@@ -208,10 +209,14 @@ test('with Redis configured, talks to the Upstash REST API', async () => {
 
   assert.equal(res.statusCode, 200);
   assert.ok(commands.every((c) => c.url === 'https://fake.upstash.io' && c.auth === 'Bearer tok'));
-  const set = commands.find((c) => c.command[0] === 'SET');
+  const set = commands.find((c) => c.command[0] === 'SET' && c.command[1].startsWith('tk:session:'));
   assert.equal(set.command[1], `tk:session:${id}`);
   assert.deepEqual(set.command.slice(3), ['EX', String(12 * 3600), 'NX']);
-  assert.ok(commands.some((c) => c.command[0] === 'EXPIRE'));
+  // rate-limit window: created with its expiry before counting
+  const window = commands.find((c) => c.command[0] === 'SET' && c.command[1].startsWith('tk:rl:'));
+  assert.deepEqual(window.command.slice(2), ['0', 'EX', '3600', 'NX']);
+  // reading the session refreshes its expiry
+  assert.deepEqual(commands[commands.length - 1].command, ['GETEX', `tk:session:${id}`, 'EX', String(12 * 3600)]);
   clearEnv();
 });
 
@@ -224,4 +229,27 @@ test('a Redis failure answers 502', async () => {
   const res = await call(api.create, { method: 'POST' });
   assert.equal(res.statusCode, 502);
   clearEnv();
+});
+
+test('any screen reading a session keeps it alive', async () => {
+  clearEnv();
+  process.env.SESSION_TTL_HOURS = '0.0003'; // ~1s
+  const api = load();
+  const id = await newSession(api);
+  for (let i = 0; i < 4; i += 1) {
+    await new Promise((r) => setTimeout(r, 600));
+    assert.equal((await call(api.session, { method: 'GET', query: { id } })).statusCode, 200);
+  }
+  await new Promise((r) => setTimeout(r, 1300));
+  assert.equal((await call(api.session, { method: 'GET', query: { id } })).statusCode, 404);
+});
+
+test('IPv6 visitors are rate limited per /64, not per address', async () => {
+  clearEnv();
+  process.env.CREATE_LIMIT_PER_HOUR = '1';
+  const api = load();
+  const from = (ip) => call(api.create, { method: 'POST', headers: { 'x-forwarded-for': ip } });
+  assert.equal((await from('2001:db8:abcd:12::1')).statusCode, 201);
+  assert.equal((await from('2001:db8:abcd:12:ffff::2')).statusCode, 429);
+  assert.equal((await from('2001:db8:abcd:13::1')).statusCode, 201);
 });

@@ -12,6 +12,7 @@
   const isPreview = params.get('preview') === '1';
   const MODE_KEY = `tk:mode:${sessionId}`;
   const HOLD_TO_EXIT_MS = 1500;
+  let renderTimer = null;
 
   applyStrings();
 
@@ -23,6 +24,11 @@
 
   function showMissing() {
     sync.stop();
+    mode = 'missing';
+    clearInterval(renderTimer);
+    // Nothing to show anymore: let the device sleep and leave fullscreen.
+    releaseWakeLock();
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
     document.body.className = 'mode-missing';
     fetchTtlHours().then((hours) => setText($('missing-body'), t('notFoundBody', { hours: hours || 12 })));
   }
@@ -38,8 +44,29 @@
     return ttlHoursPromise;
   }
 
+  // The stage preview inside control mode doesn't poll: the parent page posts it its state.
+  function createPreviewFeed() {
+    let state = null;
+    let offset = 0;
+    window.addEventListener('message', (event) => {
+      if (event.origin !== location.origin || event.source !== window.parent) return;
+      const data = event.data;
+      if (!data || data.type !== 'tk:state' || !data.state) return;
+      state = data.state;
+      offset = Number(data.offset) || 0;
+      onState(state);
+    });
+    return {
+      start() {},
+      stop() {},
+      now: () => Date.now() + offset,
+      getState: () => state,
+      send: () => Promise.resolve(null),
+    };
+  }
+
   let failingSince = null;
-  const sync = core.createSync({
+  const sync = isPreview ? createPreviewFeed() : core.createSync({
     url: `/api/sessions/${encodeURIComponent(sessionId)}`,
     pollMs: 2000,
     hiddenPollMs: 10000,
@@ -91,18 +118,24 @@
     }
     if (location.hash === '#present' && mode === 'control') history.replaceState(null, '', location.pathname);
 
+    const frame = $('preview');
     if (mode === 'present') {
-      // The stage device doesn't need the preview iframe polling in the background.
-      $('preview').removeAttribute('src');
+      // The stage device has no use for the preview: unload it.
+      frame.src = 'about:blank';
+      previewLoaded = false;
       if (fromGesture) await enterFullscreen();
       requestWakeLock();
     } else {
       document.body.classList.remove('is-expired');
       releaseWakeLock();
       if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
-      if (!$('preview').getAttribute('src')) $('preview').src = `/s/${sessionId}?preview=1`;
+      if (!previewLoaded) {
+        frame.src = `/s/${sessionId}?preview=1`;
+        previewLoaded = true;
+      }
       scalePreview();
     }
+    updateFullscreenButton();
     render();
   }
 
@@ -117,6 +150,15 @@
   }
 
   $('enter-present').addEventListener('click', () => setMode('present', { fromGesture: true }));
+
+  // After a reload in presentation mode the browser won't go fullscreen on its own (needs a tap).
+  const fullscreenBtn = $('fullscreen-btn');
+  function updateFullscreenButton() {
+    fullscreenBtn.hidden =
+      mode !== 'present' || isPreview || !document.fullscreenEnabled || Boolean(document.fullscreenElement);
+  }
+  fullscreenBtn.addEventListener('click', enterFullscreen);
+  document.addEventListener('fullscreenchange', updateFullscreenButton);
 
   // Leaving presentation mode takes a deliberate press-and-hold, so a stray tap on stage does nothing.
   const exitBtn = $('exit-present');
@@ -520,6 +562,16 @@
   });
 
   // The preview is the real stage view at 1280×720, scaled down to fit the card.
+  // It gets its state from this page via postMessage instead of polling on its own.
+  let previewLoaded = false;
+  function postToPreview() {
+    const frame = $('preview');
+    const state = sync.getState();
+    if (isPreview || mode !== 'control' || !previewLoaded || !state || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({ type: 'tk:state', state, offset: sync.now() - Date.now() }, location.origin);
+  }
+  $('preview').addEventListener('load', postToPreview);
+
   const previewBox = $('preview-box');
   function scalePreview() {
     $('preview').style.transform = `scale(${previewBox.clientWidth / 1280})`;
@@ -541,6 +593,7 @@
     } else {
       highlightCurrent(state);
     }
+    postToPreview();
     render();
   }
 
@@ -560,5 +613,5 @@
   if (isPreview) document.body.classList.add('is-preview');
   setMode(initialMode());
   sync.start();
-  setInterval(render, 100);
+  renderTimer = setInterval(render, 100);
 })();

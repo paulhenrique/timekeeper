@@ -17,7 +17,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const stored = await getJSON(sessionKey(id));
+    // Any screen opening the session keeps it alive; it only vanishes after a stretch with nobody using it.
+    const stored = await getJSON(sessionKey(id), { refreshTtlSec: sessionTtlSec() });
     if (!stored) {
       res.status(404).json({ status: 'not_found', message: 'This session does not exist or has expired' });
       return;
@@ -30,7 +31,6 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST') {
       const state = applyAction(normalizeState(stored), readBody(req), Date.now());
-      // Every change pushes the expiry forward: a session dies after a stretch of no use.
       await setJSON(sessionKey(id), state, sessionTtlSec());
       res.status(200).json({ state, serverNow: Date.now(), ttlSec: sessionTtlSec() });
       return;

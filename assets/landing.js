@@ -26,15 +26,18 @@
         errorEl.textContent =
           data.status === 'storage_missing' ? t('storageMissing') : data.message || t('createError');
         errorEl.hidden = false;
+        createBtn.disabled = false;
+        createBtn.textContent = t('createSession');
         return;
       }
+      // Keep the button disabled while the browser navigates, so a double click can't create two sessions.
       location.href = `/s/${data.id}`;
+      return;
     } catch {
       errorEl.textContent = t('createError');
       errorEl.hidden = false;
-    } finally {
-      createBtn.disabled = false;
-      createBtn.textContent = t('createSession');
     }
+    createBtn.disabled = false;
+    createBtn.textContent = t('createSession');
   });
 })();

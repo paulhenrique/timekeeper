@@ -8,7 +8,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+const ASSETS = path.join(ROOT, 'assets');
 const PORT = Number(process.env.PORT) || 3000;
+// Only this machine: the repo may hold .env files with real Redis tokens.
+const HOST = '127.0.0.1';
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -50,11 +53,18 @@ function readJson(req) {
   });
 }
 
+function notFound(res) {
+  res.statusCode = 404;
+  res.end('Not found');
+}
+
+// Serves only the pages and assets/, never dotfiles or anything else in the repo.
 function serveFile(res, relative) {
   const file = path.join(ROOT, relative);
-  if (!file.startsWith(ROOT + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-    res.statusCode = 404;
-    res.end('Not found');
+  const isPage = ['index.html', 'session.html'].includes(path.relative(ROOT, file));
+  const isAsset = file.startsWith(ASSETS + path.sep) && !path.basename(file).startsWith('.');
+  if ((!isPage && !isAsset) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    notFound(res);
     return;
   }
   res.setHeader('Content-Type', TYPES[path.extname(file)] || 'application/octet-stream');
@@ -80,6 +90,6 @@ const server = http.createServer(async (req, res) => {
   return serveFile(res, pathname);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log(`Timekeeper running at http://localhost:${PORT} (in-memory storage)`);
 });

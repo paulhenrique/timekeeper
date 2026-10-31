@@ -28,9 +28,9 @@ function positiveNumberEnv(name, fallback) {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-// Sessions are volatile: they disappear this long after the last change.
+// Sessions are volatile: they disappear this long after nobody has used them.
 function sessionTtlSec() {
-  return Math.round(positiveNumberEnv('SESSION_TTL_HOURS', 12) * 3600);
+  return Math.max(1, Math.round(positiveNumberEnv('SESSION_TTL_HOURS', 12) * 3600));
 }
 
 function createLimitPerHour() {
@@ -56,10 +56,22 @@ function readBody(req) {
   return {};
 }
 
+// One IPv6 client usually controls a whole /64, so rate limits key on that prefix.
+function ipv6Prefix64(ip) {
+  const [head, tail = ''] = ip.split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const missing = ip.includes('::') ? 8 - left.length - right.length : 0;
+  const groups = [...left, ...Array(Math.max(0, missing)).fill('0'), ...right];
+  return `${groups.slice(0, 4).map((g) => g.toLowerCase().replace(/^0+(?=.)/, '')).join(':')}::/64`;
+}
+
 function clientIp(req) {
   const headers = req.headers || {};
   const forwarded = String(headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || String(headers['x-real-ip'] || '') || 'unknown';
+  const ip = forwarded || String(headers['x-real-ip'] || '') || 'unknown';
+  if (ip.includes(':') && !ip.startsWith('::ffff:')) return ipv6Prefix64(ip);
+  return ip.replace(/^::ffff:/, '');
 }
 
 // Fills in anything a stored state might be missing, so old or partial data never crashes.

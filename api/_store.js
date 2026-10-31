@@ -71,8 +71,15 @@ async function redis(command) {
   return body.result;
 }
 
-async function getJSON(key) {
-  const raw = useMemory() ? memoryGet(key) : await redis(['GET', key]);
+// With { refreshTtlSec } reading also pushes the expiry forward (one Redis command: GETEX).
+async function getJSON(key, { refreshTtlSec } = {}) {
+  let raw;
+  if (useMemory()) {
+    raw = memoryGet(key);
+    if (raw !== null && refreshTtlSec) memory.get(key).expiresAt = Date.now() + refreshTtlSec * 1000;
+  } else {
+    raw = await redis(refreshTtlSec ? ['GETEX', key, 'EX', String(refreshTtlSec)] : ['GET', key]);
+  }
   if (raw == null) return null;
   try {
     return JSON.parse(raw);
@@ -94,7 +101,9 @@ async function setJSON(key, value, ttlSec, { onlyIfAbsent = false } = {}) {
   return (await redis(command)) === 'OK';
 }
 
-// Counter that starts expiring from its first increment (fixed-window rate limit).
+// Fixed-window counter. The key is created with its expiry *before* counting
+// (SET NX EX, then INCR keeps the TTL), so a crash between the two commands
+// can never leave a counter that lives forever.
 async function incrementWindow(key, windowSec) {
   if (useMemory()) {
     const current = Number(memoryGet(key)) || 0;
@@ -103,9 +112,8 @@ async function incrementWindow(key, windowSec) {
     memory.set(key, { value: String(current + 1), expiresAt });
     return current + 1;
   }
-  const count = Number(await redis(['INCR', key]));
-  if (count === 1) await redis(['EXPIRE', key, String(windowSec)]);
-  return count;
+  await redis(['SET', key, '0', 'EX', String(windowSec), 'NX']);
+  return Number(await redis(['INCR', key]));
 }
 
 module.exports = { StoreNotConfiguredError, StoreError, getJSON, setJSON, incrementWindow };

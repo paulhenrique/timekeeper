@@ -10,7 +10,7 @@
     how1: 'Create a session and build the agenda: “Opening, 10 min”, “Keynote, 30 min”…',
     how2: 'Open the same link on the stage screen and switch it to presentation mode.',
     how3: 'Play, pause, add time and send messages to the speaker. Overtime counts in red.',
-    volatileNote: 'Sessions are temporary: they vanish {hours} hours after the last change. No account needed.',
+    volatileNote: 'Sessions are temporary: they vanish after {hours} hours with nobody using them. No account needed.',
     footerSource: 'Open source (MIT) on GitHub',
     footerCredit: 'Made by the DevItape community',
     createError: 'Could not create a session. Try again in a moment.',
@@ -38,7 +38,7 @@
     linkCopied: 'Link copied',
     presentMode: 'Presentation mode',
     presentHint: 'On the stage screen, open this same link and tap “Presentation mode”.',
-    expiresNote: 'This session vanishes {hours}h after the last change.',
+    expiresNote: 'This session vanishes after {hours}h with nobody using it.',
     connected: '● connected',
     offline: '● offline',
     stagePreview: 'Stage preview',
@@ -90,9 +90,10 @@
     awakeUnsupported: 'This browser can’t keep the screen on: adjust the device sleep settings',
     connectionLost: 'Connection lost — showing the last known time',
     holdToExit: 'Hold to exit',
+    fullscreen: '⛶ Full screen',
 
     notFoundTitle: 'Session not found',
-    notFoundBody: 'It may have expired: sessions vanish {hours} hours after the last change.',
+    notFoundBody: 'It may have expired: sessions vanish after {hours} hours with nobody using them.',
     newSession: 'Create a new session',
   };
 

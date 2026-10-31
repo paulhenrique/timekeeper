@@ -386,7 +386,7 @@ body.is-expired .tk-red-wash {
 
 .is-preview .tk-foot,
 .is-preview .tk-wake-hint,
-.is-preview .tk-exit {
+.is-preview .tk-corner {
   display: none;
 }
 
@@ -842,11 +842,20 @@ body.is-expired .tk-red-wash {
 
 /* ---------- Leaving presentation mode: press and hold ---------- */
 
-.tk-exit {
+.tk-corner {
   position: fixed;
   top: 10px;
   left: 10px;
   z-index: 7;
+  display: flex;
+  gap: 8px;
+}
+
+.tk-fullscreen {
+  padding: 6px 12px;
+}
+
+.tk-exit {
   display: flex;
   align-items: center;
   gap: 8px;

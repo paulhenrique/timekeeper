@@ -129,10 +129,13 @@
       </div>
     </main>
 
-    <button class="tk-exit" id="exit-present" type="button" aria-describedby="exit-label">
-      <span class="tk-exit-ring" aria-hidden="true"></span>
-      <span class="tk-exit-label" id="exit-label" data-t="holdToExit">Hold to exit</span>
-    </button>
+    <div class="tk-corner">
+      <button class="tk-exit" id="exit-present" type="button" aria-describedby="exit-label">
+        <span class="tk-exit-ring" aria-hidden="true"></span>
+        <span class="tk-exit-label" id="exit-label" data-t="holdToExit">Hold to exit</span>
+      </button>
+      <button class="tk-exit tk-fullscreen" id="fullscreen-btn" type="button" hidden data-t="fullscreen">Full screen</button>
+    </div>
     <button class="tk-wake-hint" id="wake-hint" type="button" hidden data-t="keepAwake"></button>
     <footer class="tk-foot">
       <span id="wake-status"></span>

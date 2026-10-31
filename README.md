@@ -16,7 +16,7 @@ by accident.
   leaving it requires pressing and holding the corner button, so a stray tap on stage does
   nothing.
 - **Volatile by design:** no accounts, no database to manage. A session lives in Redis and
-  vanishes a few hours after its last change.
+  vanishes after a few hours with nobody using it.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpaulhenrique%2Ftimekeeper)
 
@@ -69,20 +69,21 @@ Until Redis is connected, the app tells you so instead of silently failing.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` | — | Upstash Redis REST endpoint (added by the Vercel integration). `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` also work. |
-| `SESSION_TTL_HOURS` | `12` | A session vanishes this long after its last change. |
+| `SESSION_TTL_HOURS` | `12` | A session vanishes after this long with no screen open and no change. |
 | `CREATE_LIMIT_PER_HOUR` | `30` | Sessions one IP can create per hour, so a single visitor can’t drain your free quota. |
 
 ### Cost
 
-Each open screen makes one small request every 2 seconds (about 1,800 per hour). A typical
-event with a control phone and one stage screen stays far inside the free tiers of Vercel and
-Upstash. Hidden control tabs slow down to one request every 10 seconds, and the stage device
-doesn’t load the preview.
+Each open screen makes one small request every 2 seconds (about 1,800 per hour; the stage
+preview inside control mode reuses the control screen’s data and adds none). A typical event
+with a control phone and one stage screen stays far inside the free tiers of Vercel and
+Upstash. Hidden control tabs slow down to one request every 10 seconds. Session creation is
+rate limited per IP (per /64 for IPv6).
 
 ## Local development
 
 ```sh
-npm run dev     # http://localhost:3000, in-memory storage, no install needed
+npm run dev     # http://localhost:3000 (this machine only), in-memory storage, no install needed
 npm test        # node --test
 ```
 
